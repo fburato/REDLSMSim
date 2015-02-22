@@ -1,0 +1,60 @@
+\section{Testing and evaluation}
+Thanks to the possibility of loading a local configuration file through the
+local parser, it was possible to test a lot of configurations and the
+results were in line with the expectations.
+
+Parameters of the article \textit{M. Conti, R. Di Pietro, L. Mancini, and A. Mei,
+``Distributed detection of clone attacks in wireless sensor networks'' IEEE 
+Transactions on Dependable and Secure Computing, vol. 8, pp. 685/698,
+September 2011} were also used to make some tests on the program and make a
+comparison between the results reported on the paper and produced by the
+application. This was done because it was interesting to determine if the 
+statistical data collected by the developed application was comparable to
+already present data known to be correct. 
+
+In both RED and LSM protocols the two results were very close except for some
+slight differences present in particular when a clone attack was detected.
+After a meeting with professors Conti and Canlar it arose that differences may
+be attributable to the fact that the simulator used in the article didn't stop
+the simulation immediately after the clone was detected but only when every 
+message in the nodes mailbox was extracted or every sensor died. This explains
+the measured differences because the behaviour of the two simulators is 
+different exactly in this point.
+
+Other test were made to determine if the other aspects of the the application
+were correctly developed.
+\begin{itemize}
+  \item The parser has been tested to verify that it refused malformed files or 
+  files containing incorrect data. During tests, every malformed file and 
+  every file with incomplete or wrong parameters were correctly refused. 
+  As expected the parser didn't refused files which had more parameters in them
+  than expected. Those parameters were simply ignored by client but still 
+  present in the parser data structure.
+  \item Server-client communication has been tested running server and client in
+  different computers. We noticed a significant lag when the server were loaded
+  in a GNU/Linux system while with other configuration everything worked 
+  correctly. The cause of this behaviour wasn't determined because of lack of 
+  time.
+\end{itemize}
+
+During protocols evaluation, it was observed that with almost all 
+configurations RED protocol is far more effective than LSM. 
+It uses a very small amount of energy and, with parameters n=300, p=0.1 and 
+g=1, it detects clones almost every time, on the contrary of LSM that is more
+expensive and, with the above parameters, ineffective to find clones 
+(the probability for LSM to detect two clones was approximately 1/200).
+
+An interesting fact that has been observed is that it's necessary to find a 
+critical threshold of nodes for both protocols in order to make a clone 
+detection possible. 
+In fact it has been noticed that under 300 nodes there is an high probability 
+that the graph is disconnected so, if clones are in two different connected
+components, it is impossible to have a clone detection.
+
+As last note we'd like to warn that package `test' and its subpackages should
+not be considered while evaluating the application. They were used during 
+development cycle to test the different software units and have not been 
+documented. However it was kept because it contains file 
+`FloodingProtocol.java' which models a naive example of possible clone
+detection protocol. We though it was a conclusive proof of the extensibility 
+of the program.

@@ -1,0 +1,24 @@
+PROTO =  LSM
+NSIM = 1
+
+%Protocol parameters
+p=0.1
+g= 1
+
+%Network parameters
+n=300
+r=0.1
+
+%Here information about energy consumption
+E = 32000
+E_send = 		20
+E_receive = 	10
+E_signature = 	50
+
+%I could add here any comment I want
+
+
+
+
+
+

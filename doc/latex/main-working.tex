@@ -1,0 +1,104 @@
+\section{Main working of the system}
+The GUI of the program is made by a main frame (MainWindow) that contains five
+panels used to configure and view the simulation. Following a description of 
+each of these panels.
+
+\begin{description}
+  \item[GraphPanel.] This panel shows to the user the state of the simulation.
+  Every node is drawn as a filled circle. At first, the color of each node is
+  black except for the two clones generated for simulating the clone attack
+  that are painted in blue. If arches are visible (see ButtonPanel), they are
+  also painted in black. The destination generated in both of the two protocol 
+  is drawn with a red cross. 
+  When the claim message is sent, arches that link clones with their neighbors
+  are painted in green. From the location claim on every arch that represents
+  a successful send (not a successful receive) is coloured in green and every
+  node that is forwarding a location claim coming from a clone and every 
+  neighbour of clones that decides to forward the claim with probability `p' is
+  coloured in green. When the clone attack is detected, the node that made
+  the detection is repainted in red.
+  \item[ButtonPanel.] This panel allows to set some parameters and provides some
+  buttons to start, stop, pause a single test or pause the whole simulation.
+  These commands will be disabled during the simulation. To enable them the
+  user must pause the simulation or the test currently running. This is done
+  because, given to the amount of threads that could be necessary to run certain
+  simulations (1000 nodes implies at least 1000 different threads), the user
+  interface cannot be very reactive. The only way to make it not completely
+  insufferable is to put the threads running the simulation in not-runnable state
+  and to make the needed changes.
+  Following a brief description of the available parameters and buttons.
+  \begin{itemize}
+    \item \textit{Sleep Time.} Sets the amount of time in milliseconds that each 
+    StationNode has to wait before it forwards a message. By default it is set to
+    100 milliseconds but it is possible to set it in the range from 0 (no pause)
+    to 1000 milliseconds with increments of 100 milliseconds.
+    \item \textit{Node Size.} Sets the diameter of a node. By defaults it is set to 5
+    pixels but it is possible to set it in the range from 1 to 50 pixels with
+    increments of 1 pixel.
+    \item \textit{Cross Size.} Sets the dimension of the destination cross. By default
+    it is set to 10 pixels but it is possible to set it in the range from 5 to
+    50 pixels.
+    \item \textit{View Arches.} When enabled it forces GraphPanel to draw not 
+    only the green arches representing a successful send but also every other 
+    arches in the graph coloured in black. 
+    \item \textit{Comfirm Buttons.} These buttons are used to confirm a change in their
+    respective parameters. That means that when a user want to change a parameter
+    during a paused simulation he has to push, before unpause the simulation, the
+    confirm button for each parameter that had been modified in order to make 
+    changes take effect. 
+    \item \textit{Start.} This button simply start the simulation. It is enabled
+    as long as long the simulation starts; after that it is disabled until the
+    simulation naturally ends or it is stopped.
+    \item \textit{Stop.} This button completely stops the simulation. It is enabled only when
+    the simulation is started or when a test or the simulation is paused.
+    \item \textit{Pause Test.} This button pause the current executing test. It is enabled
+    only when the simulation is already started. The user has just to push this button
+    again to unpause the test and continue the simulation.
+    \item \textit{Pause Sim.} This button pause the simulation running. It is enabled only
+    when the simulation is already started. The simulation will pause only when the
+    current test executing is finished. The user just has to push this button again
+    to unpause the simulation and continue it.
+  \end{itemize}
+  \item[SimulationState.] This panel shows to the user the actual state of the
+  simulation, the protocol and the number of the test running.
+  \item[ResultsPanel.] This panel is used to show to the user results of tests.
+  Each test result is printed when the test is finished. It occupies a line and
+  is printed in the same order as results are send to and printed by the RMI server
+  that is following the given specifications. In order: the name of the protocol,
+  the number of tests, the number of nodes, the communication radius of a StationNode,
+  the probability for a neighbour StationNode to  process a claim message, the number
+  of destination locations, the initial amount of energy for each StationNode, the
+  energy spent to send a message, the energy spent to receive a message, the energy
+  spent to check a signature, the minimum, maximum, average and standard
+  deviation of the number of sent messages,  the number of received messages, 
+  the number of signature checks, the amount of consumed energy, the number of 
+  stored messages and finally if there was a clone detection (true or false).
+  To divide a simulation result from another, a line of asterisks is printed at the
+  end of the simulation. The user can't write in this area.
+  \item[TextPanel.] This panel lets the user insert the path of the configuration
+  file and the address of the RMI server. It is possible to insert a local path, if
+  the file is saved into the user's file system, or a remote path, if the file is
+  saved on a web site. The user just need to write the path into the `Parser Path'
+  field and then specify the location through radio buttons. By default it is set
+  to the PCD course site's configuration file.
+  To set the RMI address the user has to write its address into the `Server Address'
+  field. By default it is set to `localhost'. For flexibility, it is given the
+  possibility to avoid the RMI server loading by checking the `Ignore' check box.
+  When the user pushes button `Start', the application extracts information from
+  the text areas, loads the configuration file and tries to connects to the 
+  RMI server (or not) following the indications given from users in this panel.
+\end{description}
+
+It's worth to say that when any errors occurs (badly formatted configuration
+file, impossibility to connect to the RMI server, etc...) the GUI informs the
+users with a message dialog which reports the encountered error.
+\\[1cm]
+The RMI server is a command line tool that accepts just a String representing 
+the path to the file which will be used to write the statistical data collected
+from clients and communicates to the user if unexpected situation happened 
+(i.e. the user has not enough privileges to write in the given file, there is 
+an existing instance of a server running on the host, rmiregistry is not 
+running, etc...). As standard behaviour if the file
+specified already exists when the server is started it is overrided. By the
+way the new content arriving from clients will be continuously appended as 
+long as the server stays open.

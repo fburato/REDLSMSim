@@ -1,0 +1,194 @@
+\section{Architecture Description}
+The entire application object of this report was developed having as aim
+the maximum possible extensibility of the application itself. The general
+architecture reflects this intention at all.
+
+In order to represent as much as possible the reality of the scenario, the
+developers decided to divide the logical structure of the software in four
+separated levels:
+\begin{description}
+  \item[Hardware:] represents the WSN itself and it is constituted of a set
+  of sensors.
+  \item[Software:] represents the protocol running on each sensor.
+  \item[GUI:] it's the top layer which interact with the user so it is totally
+  independent from the rest of the architecture.
+  \item[Server:] it's a separated layer dedicated to RMI communication.
+\end{description}
+
+\subsection{Hardware}
+While developing the `hardware' part it was clear that the most general object
+which must be handled while modelling a network is a graph. This simple
+assumption determined the necessity to describe a sensor as a node in a graph
+capable of different actions.
+Every class and interface used to model a sensor can be find in package `graph'
+and its subpackages.
+Following a short description of the most important interfaces.
+\begin{description}
+  \item[Node.] It's the most general object that could be imagined being
+  part of a graph. It is a node in the mathematical sense with its 
+  neighbours. Since the application should be extensible the arch which connect
+  every node with its adjacent-set is weighed and the graph is oriented.
+  \item[ColoredNode.] In the first draft of the project specification
+  was asked to evaluate the graph connectivity and the most simple
+  solution suitable for counting connected components and determine whether or 
+  not a graph is connected was considered to be a graph colouring algorithm. 
+  Specification changed during development so this feature is no more needed. 
+  By the way this aspect was maintained for completeness.
+  \item[MetricNode, EuclideanNode.] In a WSN each sensor has a position
+  in a reference system. Since the position in an euclidean plane is just a 
+  specification of a metric space, it was natural to create a MetricNode which
+  has to be considered as a Node able to calculate a distance between it and 
+  another position. An EuclideanNode is simply a specification of a MetricNode
+  which has its position defined as a couple of coordinates in a Cartesian
+  coordinate system. By the way every metric space in which a distance concept
+  can be modelled (even toroidal spaces) is easy to implement from MetricNode.
+  \item [CommunicationNode.] The most simple way to allow to objects
+  entities to communicate is: give a unique address to each entity and give 
+  them a mailbox in which messages could be put. A CommunicationNode is a Node
+  that offers a method (`putMessage') used by other entities to put a message in its
+  mailbox. The addressing system is simulated via the references of the nodes
+  saved in the neighbours data structure. This implies that in a graph of
+  CommunicationNodes each node could talk just to its neighbours (because
+  adding unique addresses to each node would have implied the implementation
+  of some sort of routing algorithm which was considered too hard to handle).
+  \item [OperationalNode.] Each sensor is capable of performing 
+  operations which consume energy. This behaviour is granted via 
+  OperationalNode interface which must be considered a Node able to perform
+  (`perform' method) an Operation with a given cost. `perform' method should communicate
+  whether or not the OperationaNode had enough battery to perform the requested
+  Operation.
+  \item [BaseNode.] It is a non-oriented non-weighed graph's node.
+  \item [StationNode.] It is the very only class used in the entire object
+  as `hardware'. Essentially it include every aspect of a sensor:
+  it is node in a non-oriented and non-weighed graph (is-a BaseNode), 
+  it has a color (is-a ColoredNode), it has a position in a 
+  Cartesian coordinate system (is-a EuclideanNode), it's able to communicate
+  (is-a CommunicationNode) and is able to perform operations which consume 
+  energy (is-a OperationalNode). It also has some interesting ad-hoc features
+  used by `software' in the application like two mailboxes, one for stored 
+  messages and one for messages which aren't yet computed by the protocol.
+\end{description}
+
+\subsection{Software}
+For `software' we intend the set of threads necessary to execute the protocols.
+Essentially it is imaginable as a program which is running using StationNode
+as its computer. The packages containing the classes of the software part are
+`threads' and `client'. The following are the most important classes to 
+describe.
+\begin{description}
+  \item[Hypervisor.] It is the `operative system' of the project. It is a 
+  thread which manages every thread created for the simulation and checks 
+  if a clone has been found or the simulation has stopped because there were
+  no more messages to process in StationNodes. In order to allow the Hypervisor
+  to check a consistent state of the simulation, it must be ensured that when
+  the Hypervisor asks to execute no thread of the simulation should execute 
+  (because if the Hypervisor is checking the number of messages in a 
+  StationNode and there are StationNodes executing, they could change the number
+  of messages present in mailboxes).
+  \item[ProtocolThread.] It is actually the real thread that executes the
+  protocol on a StationNode. The `run' method is constituted of two parts: the
+  common synchronization mechanism and the operative part. The common 
+  synchronization mechanism consists in a set of instruction that allow the 
+  Hypervisor to be informed that the ProtocolThread has stopped due to the 
+  request of the Hypervisor itself. The operative part is designed as an abstract 
+  method `protocol' which must be overrided by subclasses.
+  \item[REDLSMCommon, RedProtocol, LSMProtocol.] These are the subclasses of
+  ProtocolThread which executes the operative part of their superclass.
+  
+  REDLSMCommon is the common set of operations that both RED and LSM protocol
+  executes. They both cause every node to claim their location to their
+  neighbours and execute different operations when they process a claim message
+  or a claim forwarded. The only difference between them is what they do when
+  processing the messages so methods `processClaim' and `processForward' are
+  abstract and must be overrided.
+  
+  RedProtocol and LSMProtocol simply extends REDLSMCommon defining the two
+  methods previously described following the given specifications.
+  
+  \item[SimulationClient.] It is the real client that coordinates the different
+  tests in a simulation (there are NSIM tests). It should be the only class accessed 
+  by user to manage the simulation. It has an inner class 
+  `SimulationController' which is a thread responsible for managing the 
+  simulation and which coordinates the various pause and stop
+  requests given from user.
+  
+  The possible pause which can occur can be: pause of one test, pause of one 
+  simulation. The first consists on asking to the Hypervisor of a currently
+  active simulation to pause every ProtocolThread executing, so every thread
+  is put in not-runnable state. The latter consists on waiting for the 
+  current test to terminate and pause every thread before the following test 
+  starts (i.e. if the configuration file indicates to execute 4 tests with 
+  NSIM=4 and the user asks to pause the simulation during the second test, the
+  system terminates the second test and is paused before the third begins).
+\end{description}
+
+By the way other notable characteristics should be: the usage of abstract 
+factories to build the graph (given the ray read from configuration file)
+and to build the protocol in order to obtain an high extensibility, the 
+implementation of the number read from satellite used in RED protocol
+as a pseudorandom numbers generator, the usage of md5 cryptographic hash has 
+part of the hashing function used on RED, the usage of event driven 
+architecture to allow protocols to communicate with the GUI, etc...
+
+\subsection{GUI}
+The GUI part consists in set of panels build up to allow user to specify
+parameters to run and manage the simulation. These panels are used as 
+listeners connected to the threads to allow the GUI to know the state of
+the simulation.
+
+The GUI is also responsible of loading and parsing the configuration file.
+
+\subsection{Server}
+The Server part consists in a simple RMI server that accepts statistical data
+collected in each simulation.
+
+\section{Architectural choices}
+The specification given to build the project left some decision to be taken by
+developers in order to satisfy better the requests. In this section there are 
+notable choices taken.
+\begin{itemize}
+  \item The parser has been developed as a mere syntactic controller. It just
+  controls that the file asked to parse has the right grammar and saves in a 
+  data structure every couple (key,value). This means that if in the file there
+  is the line ``good morning = hello'' it is correctly parsed and saved in the
+  parser data structure. The control on data types is done 
+  by clients. This decision was taken because it has been thought that the 
+  parser should be able to parse every correct file and if the application is 
+  extended to protocols that need other parameters, it should always be able to
+  parse their file.
+  \item The simulation will stop as soon as a clone is detected. This means 
+  that when a ProtocolThread realizes that it has a clone evidence, from that
+  point on at least one more message is processed by the other threads until
+  they reach a synchronization point. This is done to have the most precise
+  approximation possible to determine the exact moment a clone attack is detected.
+  \item During the location claim the cost to warn every neighbour of a 
+  StationNode is the cost of sending just one message. This is done because in
+  real life wireless communication the cost of perform a broadcast is the same
+  as perform a send to a single station.
+  \item StationNodes use mailboxes in order to obtain an asynchronous
+  communication. The usage of mailboxes grant the possibility to have less 
+  points to synchronize on and a simpler management of the different 
+  behaviours because a ProtocolThread can determine what to do just inspecting 
+  what kind of message it must process.
+  
+  Because of the mailbox oriented communication previously described, one
+  drawback that exists in this architecture is the impossibility to 
+  deterministically say whether or not a message will be processed. Since there
+  are different threads that could access a StationNode mailbox, it is possible
+  that even if in a certain moment that node is alive (i.e. has more than 0 
+  battery) and a message is sent to it, 
+  it won't be able to process that message because some other node put
+  a message on its mailbox or because it is doing some energy sucking operation. 
+  This means that some message, when a StationNode is low battery, can be sent 
+  but never processed or even lost.
+  
+  Actually the behaviour of the system in managing dead StationNode is the
+  following: if a StationNode is dead then it is not considered while 
+  computing the nearest node in the routing algorithm, if it is alive and it
+  is the nearest then it is used as destination of the forward message even if 
+  meanwhile it died. The message in the latter case is lost.
+  \item The RMI server must be specified only with the host name it has been
+  loaded on. This is done because it should not be allowed for two servers
+  to execute in the same machine because they could be configured to write 
+  in the same file causing inconsistency.
+\end{itemize}
